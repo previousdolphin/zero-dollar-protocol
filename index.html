@@ -7,14 +7,18 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,900&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --bg-color: #050505;
-            --text-color: #f0f0f0;
-            --glitch-cyan: #0ff;
-            --glitch-magenta: #f0f;
+            --bg-color: #020202;
+            /* Silver/Platinum Gradient stops */
+            --silver-1: #ffffff;
+            --silver-2: #8a8a8a;
+            --silver-3: #e0e0e0;
+            
+            --glitch-cyan: #00ffff;
+            --glitch-magenta: #ff00ff;
         }
 
         /* --- BASE SETUP --- */
@@ -25,7 +29,7 @@
             height: 100vh;
             width: 100vw;
             overflow: hidden;
-            font-family: 'Archivo Black', sans-serif;
+            font-family: 'Bodoni Moda', serif; /* The Money Font */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -35,45 +39,39 @@
 
         /* --- LAYERS --- */
         
-        /* 1. EKG (Bottom Layer) */
+        /* 1. EKG (Background) */
         canvas#ekg {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: 1; 
             pointer-events: none;
-            opacity: 0.6; /* Slightly more visible now that lines are thicker */
+            opacity: 0.7; 
         }
 
-        /* 2. Global Grain (The "Fuzz") */
-        /* Changed to use steps() to prevent "raining" slide effect */
+        /* 2. Global Grain (The Fuzz) */
         .film-grain {
             position: fixed;
             top: -100%; left: -100%; width: 300%; height: 300%;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
-            opacity: 0.1;
-            /* steps(10) creates the jitter/fuzz look instead of smooth sliding */
+            opacity: 0.08;
             animation: fuzz-bounce 0.8s steps(10) infinite; 
             pointer-events: none;
             z-index: 5;
         }
 
-        /* 3. Crunchy Vignette (Top Layer) */
+        /* 3. Dither Lens (Top Layer) */
         .dither-vignette {
             position: fixed;
             inset: 0;
             z-index: 100;
             pointer-events: none;
-            /* High contrast noise mask for edges */
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='discrete' tableValues='0 1'/%3E%3CfeFuncG type='discrete' tableValues='0 1'/%3E%3CfeFuncB type='discrete' tableValues='0 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
             background-size: 100px 100px;
-            
-            /* Responsive Vignette Mask */
             -webkit-mask-image: radial-gradient(circle at center, transparent 40%, black 100%);
             mask-image: radial-gradient(circle at center, transparent 40%, black 100%);
-            
             mix-blend-mode: multiply;
-            opacity: 0.9;
+            opacity: 0.8;
         }
 
         /* --- TYPOGRAPHY --- */
@@ -82,45 +80,63 @@
             z-index: 10;
             perspective: 800px;
             width: 100%;
-            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Flex column to stack words */
+            flex-direction: column; 
         }
 
         h1 {
-            /* Responsive Sizing Logic */
-            /* Mobile Default (Portrait) */
-            font-size: 18vw; 
-            line-height: 0.85;
+            /* SMART SCALING:
+               This calculates the font size based on whichever is smaller: 
+               16% of Width OR 13% of Height.
+               This ensures the stack of 3 words NEVER falls off screen.
+            */
+            font-size: min(15vw, 13vh); 
+            line-height: 0.9;
             
+            font-weight: 900;
+            font-style: normal;
             text-transform: uppercase;
-            color: var(--text-color);
             margin: 0;
             text-align: center;
             position: relative;
-            letter-spacing: -0.05em;
+            letter-spacing: -0.04em;
+            
+            /* The "Bling" Effect: Silver Gradient Text */
+            background: linear-gradient(
+                135deg, 
+                var(--silver-2) 0%, 
+                var(--silver-1) 25%, 
+                var(--silver-2) 50%, 
+                var(--silver-3) 75%, 
+                var(--silver-2) 100%
+            );
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent; /* Hide actual color to show gradient */
+            
             will-change: transform, filter, opacity;
             transition: transform 0.1s;
             
             /* Sharp edges */
             -webkit-font-smoothing: antialiased;
+            text-shadow: 0px 0px 30px rgba(255,255,255,0.15); /* Luxury Glow */
         }
 
-        /* Landscape / Large Screen Adjustment */
-        @media (min-aspect-ratio: 1/1) {
-            h1 {
-                font-size: 8vw; /* Smaller vw on wide screens so it fits vertically */
-                line-height: 0.9;
-            }
-        }
-
-        /* Standard Glitch Layers */
+        /* Glitch Layers */
+        /* Note: Gradient text breaks slightly with mix-blend-mode, 
+           so we use solid colors for the glitch clones */
         h1::before, h1::after {
             content: attr(data-text); 
             white-space: pre;
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background: transparent;
-            mix-blend-mode: hard-light;
-            opacity: 0.7;
+            mix-blend-mode: exclusion; /* Changed for better contrast with serif */
+            opacity: 0.6;
         }
 
         h1::before {
@@ -139,22 +155,16 @@
 
         /* --- ANIMATIONS --- */
         
-        /* The Fuzz Animation: Random Jumps */
         @keyframes fuzz-bounce {
             0% { transform: translate(0,0); }
             10% { transform: translate(-5%, -5%); }
-            20% { transform: translate(2%, 2%); }
             30% { transform: translate(-2%, 5%); }
-            40% { transform: translate(5%, -2%); }
             50% { transform: translate(-2%, -2%); }
-            60% { transform: translate(5%, 5%); }
             70% { transform: translate(-5%, 2%); }
-            80% { transform: translate(2%, -5%); }
             90% { transform: translate(-2%, 2%); }
             100% { transform: translate(0,0); }
         }
 
-        /* Idle Glitch Movements */
         @keyframes glitch-idle-1 {
             0%, 95% { clip-path: inset(0 0 0 0); transform: translate(0); }
             96% { clip-path: inset(20% 0 50% 0); transform: translate(-3px, 1px); }
@@ -166,25 +176,26 @@
             100% { clip-path: inset(0 0 0 0); transform: translate(0); }
         }
 
-        /* --- THE GLITCH ROULETTE STATES --- */
+        /* --- GLITCH ROULETTE STATES --- */
         .glitch-slice h1 {
-            clip-path: polygon(0 30%, 100% 30%, 100% 70%, 0 70%);
-            transform: skewX(40deg) translateX(-15px) !important;
-            filter: blur(2px);
+            clip-path: polygon(0 40%, 100% 40%, 100% 60%, 0 60%);
+            transform: skewX(50deg) translateX(-10px) !important;
+            filter: hue-rotate(90deg) contrast(150%);
         }
         .glitch-crush h1 {
-            transform: scaleY(0.01) scaleX(1.2) !important;
+            transform: scaleY(0.01) scaleX(1.1) !important;
             opacity: 0.5;
-            filter: brightness(200%);
+            letter-spacing: 0.5em;
         }
         .glitch-invert h1 {
             filter: invert(1);
-            color: #000;
+            background: none; 
+            color: #000; /* Force black on invert */
+            -webkit-background-clip: border-box; 
         }
         .glitch-blur h1 {
-            filter: blur(10px);
-            opacity: 0.8;
-            letter-spacing: 0.1em;
+            filter: blur(8px) contrast(200%);
+            opacity: 0.9;
         }
 
     </style>
@@ -217,22 +228,22 @@
         let xPos = 0;
         let yBase = 0;
         let beatPhase = 0;
-        // Sharper, higher amplitude QRS complex
-        const beatPattern = [0, -20, 30, -30, -120, 180, -50, 20, -10, 0]; 
+        // The "Thick" Heartbeat Pattern
+        const beatPattern = [0, -20, 40, -40, -150, 200, -60, 30, -10, 0]; 
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            // Floor is lower third
-            yBase = window.innerHeight * 0.8; 
+            // Floor is lower 15%
+            yBase = window.innerHeight * 0.85; 
             
-            // THICKER LINES HERE
-            ctx.strokeStyle = "rgba(0, 255, 255, 0.6)"; 
-            ctx.lineWidth = 4; // Thicker line
+            // THICKER & GLOWIER
+            ctx.strokeStyle = "rgba(0, 255, 230, 0.7)"; // Cyan/Teal
+            ctx.lineWidth = 5; 
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
-            ctx.shadowBlur = 20; // Stronger glow
-            ctx.shadowColor = "rgba(0, 255, 255, 0.9)";
+            ctx.shadowBlur = 25; 
+            ctx.shadowColor = "rgba(0, 255, 230, 0.9)";
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
@@ -249,8 +260,8 @@
                 beatPhase = 1; 
             }
 
-            // Draw Background Fade (Simulates phosphor decay)
-            ctx.fillStyle = 'rgba(5, 5, 5, 0.15)'; 
+            // Dark Trail Fade
+            ctx.fillStyle = 'rgba(2, 2, 2, 0.1)'; 
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             ctx.beginPath();
@@ -261,14 +272,13 @@
                 const index = Math.floor(beatPhase);
                 if (index < beatPattern.length) {
                     yOffset = beatPattern[index];
-                    beatPhase += 0.5;
+                    beatPhase += 0.55;
                 } else { beatPhase = 0; }
             } else {
-                // Resting jitter 
-                yOffset = (Math.random() - 0.5) * 3; 
+                yOffset = (Math.random() - 0.5) * 4; 
             }
 
-            xPos += 4; // Slightly faster scroll
+            xPos += 5; 
             ctx.lineTo(xPos, yBase + yOffset);
             ctx.stroke();
             window.prevY = yOffset;
@@ -281,24 +291,21 @@
         }
 
         // --- GLITCH ENGINE ---
-        const SUBLIMINALS = ["NULL", "VOID", "0.00", "ERROR", "DEBT", "ZERO"];
+        const SUBLIMINALS = ["SOLD", "DEBT", "CASH", "VOID", "GREED", "NULL"];
 
         function glitchRoulette() {
             const delay = Math.random() * 4000 + 3000;
-            const roll = Math.floor(Math.random() * 5);
+            const roll = Math.floor(Math.random() * 6); // increased randomness
             
-            // Standard Text for Reset
             const originalHTML = "ZERO<br>DOLLAR<br>PROTOCOL";
             const originalData = "ZERO\nDOLLAR\nPROTOCOL";
 
             switch(roll) {
                 case 0: // SUBLIMINAL
                     const word = SUBLIMINALS[Math.floor(Math.random() * SUBLIMINALS.length)];
-                    // Repeat word 3 times for visual consistency in the stack
-                    const stack = `${word}\n${word}\n${word}`;
                     const stackHTML = `${word}<br>${word}<br>${word}`;
                     
-                    updateText(stackHTML, stack);
+                    updateText(stackHTML, `${word}\n${word}\n${word}`);
                     setTimeout(() => updateText(originalHTML, originalData), 120);
                     break;
 
@@ -321,6 +328,17 @@
                     container.classList.add('glitch-blur');
                     setTimeout(() => container.classList.remove('glitch-blur'), 200);
                     break;
+                
+                case 5: // DOUBLE INVERT (Strobe)
+                    container.classList.add('glitch-invert');
+                    setTimeout(() => {
+                        container.classList.remove('glitch-invert');
+                        setTimeout(() => {
+                            container.classList.add('glitch-invert');
+                            setTimeout(() => container.classList.remove('glitch-invert'), 60);
+                        }, 80);
+                    }, 60);
+                    break;
             }
             setTimeout(glitchRoulette, delay);
         }
@@ -334,15 +352,18 @@
         document.addEventListener('mousemove', (e) => {
             if (targetBPM < BPM_MAX) targetBPM += 0.5;
             
-            const x = (window.innerWidth / 2 - e.pageX) / 40;
-            const y = (window.innerHeight / 2 - e.pageY) / 40;
+            const x = (window.innerWidth / 2 - e.pageX) / 45;
+            const y = (window.innerHeight / 2 - e.pageY) / 45;
             title.style.transform = `rotateX(${y}deg) rotateY(${-x}deg)`;
         });
 
         document.addEventListener('mousedown', () => {
             if (targetBPM < BPM_MAX) targetBPM += 20;
-            title.style.transform = `scale(1.05)`;
+            // Visual pop
+            title.style.transform = `scale(1.02)`;
             setTimeout(() => title.style.transform = `scale(1)`, 100);
+            
+            // Manual glitch trigger
             container.classList.add('glitch-invert');
             setTimeout(() => container.classList.remove('glitch-invert'), 50);
         });
