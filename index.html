@@ -11,11 +11,10 @@
 
     <style>
         :root {
-            --bg-color: #080808;
-            --text-color: #e8e8e8;
+            --bg-color: #050505;
+            --text-color: #f0f0f0;
             --glitch-cyan: #0ff;
             --glitch-magenta: #f0f;
-            --ecg-color: rgba(200, 255, 255, 0.15); /* Ghostly faint teal */
         }
 
         /* --- BASE SETUP --- */
@@ -30,62 +29,64 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            cursor: none;
+            cursor: crosshair; /* Brutalist cursor */
             user-select: none;
         }
 
-        /* --- LAYERS --- */
+        /* --- LAYERS (Bottom to Top) --- */
         
-        /* 1. EKG Canvas (Background) */
+        /* 1. EKG Canvas (Background, moved to bottom) */
         canvas#ekg {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            z-index: 1; /* Lowest visual layer */
+            z-index: 1; 
             pointer-events: none;
+            opacity: 0.6; /* Slight boost since it's lower now */
         }
 
-        /* 2. Film Grain (Middle) */
+        /* 2. Global Film Grain (Subtle texture everywhere) */
         .film-grain {
             position: fixed;
             top: -50%; left: -50%; width: 200%; height: 200%;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
-            opacity: 0.12;
+            opacity: 0.08;
             animation: grain-shift 0.2s steps(4) infinite;
             pointer-events: none;
-            z-index: 10;
+            z-index: 5;
         }
 
-        /* 3. Dither Lens (Top) */
-        .lens-dither {
+        /* 3. THE CRUNCHY LENS (The requested "Dither" effect) */
+        /* This creates a heavy noise ring around the edges */
+        .dither-vignette {
             position: fixed;
             inset: 0;
-            z-index: 20;
+            z-index: 50; /* Sits ON TOP of text */
             pointer-events: none;
-            background: #000;
-            mask-image: radial-gradient(circle at center, transparent 40%, black 120%);
-            -webkit-mask-image: radial-gradient(circle at center, transparent 40%, black 120%);
-        }
-        
-        .lens-dither::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E");
-            opacity: 0.4;
-            mix-blend-mode: hard-light;
+            
+            /* The noise pattern: coarse and high contrast */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='discrete' tableValues='0 1'/%3E%3CfeFuncG type='discrete' tableValues='0 1'/%3E%3CfeFuncB type='discrete' tableValues='0 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+            background-size: 150px 150px;
+            
+            /* The Mask: Clear in center, Opaque at edges */
+            -webkit-mask-image: radial-gradient(circle at center, transparent 30%, black 90%);
+            mask-image: radial-gradient(circle at center, transparent 30%, black 90%);
+            
+            /* Blend mode to make it darken the scene "crunchily" */
+            mix-blend-mode: multiply;
+            opacity: 0.8;
         }
 
-        /* --- TYPOGRAPHY --- */
+        /* 4. CONTENT WRAPPER */
         .content-wrapper {
             position: relative;
-            z-index: 30; /* Above everything */
-            mix-blend-mode: difference;
+            z-index: 10; /* Above grain, below dither lens */
             perspective: 800px;
+            /* Removed mix-blend-mode difference to fix overlap issues */
         }
 
         h1 {
-            font-size: 10vw;
+            font-size: 11vw;
             line-height: 0.8;
             text-transform: uppercase;
             color: var(--text-color);
@@ -95,16 +96,18 @@
             letter-spacing: -0.06em;
             transform-style: preserve-3d;
             will-change: transform;
+            text-shadow: 0 0 20px rgba(0,0,0,0.8); /* Lift text off background */
         }
 
+        /* GLITCH LAYERS (The cyan/magenta split) */
         h1::before, h1::after {
             content: "ZERO DOLLAR\A PROTOCOL";
             white-space: pre;
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-color);
-            mix-blend-mode: hard-light;
-            opacity: 0.8;
+            background: transparent; /* Changed from solid to transparent to avoid blocking */
+            mix-blend-mode: screen; /* Lightens the glitch */
+            opacity: 0.7;
         }
 
         h1::before {
@@ -112,6 +115,7 @@
             z-index: -1;
             clip-path: inset(0 0 0 0);
             animation: glitch-snap-1 4s infinite linear alternate-reverse;
+            transform: translate(-2px, 0);
         }
 
         h1::after {
@@ -119,35 +123,41 @@
             z-index: -2;
             clip-path: inset(0 0 0 0);
             animation: glitch-snap-2 3.5s infinite linear alternate-reverse;
+            transform: translate(2px, 0);
         }
 
         /* --- ANIMATIONS --- */
         @keyframes grain-shift {
-            0% { transform: translate(0,0); }
-            100% { transform: translate(-5%, -5%); }
+            0% { background-position: 0% 0%; }
+            100% { background-position: 10% 10%; }
         }
 
         @keyframes glitch-snap-1 {
-            0%, 90% { clip-path: inset(0 0 0 0); transform: translate(0); }
-            91% { clip-path: inset(20% 0 50% 0); transform: translate(-2px, 2px); }
-            92% { clip-path: inset(60% 0 10% 0); transform: translate(2px, -2px); }
-            93% { clip-path: inset(0 0 0 0); transform: translate(0); }
+            0%, 92% { clip-path: inset(0 0 0 0); transform: translate(0); }
+            93% { clip-path: inset(20% 0 50% 0); transform: translate(-4px, 2px); }
+            94% { clip-path: inset(60% 0 10% 0); transform: translate(4px, -2px); }
+            95% { clip-path: inset(0 0 0 0); transform: translate(0); }
+            98% { clip-path: inset(10% 0 70% 0); transform: translate(3px, 0); }
             100% { clip-path: inset(0 0 0 0); transform: translate(0); }
         }
 
         @keyframes glitch-snap-2 {
-            0%, 85% { clip-path: inset(0 0 0 0); transform: translate(0); }
-            86% { clip-path: inset(40% 0 30% 0); transform: translate(2px, 2px); }
-            87% { clip-path: inset(0 0 0 0); transform: translate(0); }
+            0%, 88% { clip-path: inset(0 0 0 0); transform: translate(0); }
+            89% { clip-path: inset(40% 0 30% 0); transform: translate(3px, 3px); }
+            90% { clip-path: inset(0 0 0 0); transform: translate(0); }
             100% { clip-path: inset(0 0 0 0); transform: translate(0); }
         }
 
-        /* Strobe Effect Class */
+        /* Strobe Effect */
         .flash-bang {
-            filter: invert(1) contrast(200%);
-            background-color: white !important;
+            filter: invert(1) contrast(150%);
+            background-color: #ddd !important;
         }
-        .flash-bang h1 { color: black !important; }
+        /* Ensure text stays readable (inverted to black) during flash */
+        .flash-bang h1 { 
+            color: #111 !important;
+            text-shadow: none;
+        }
 
     </style>
 </head>
@@ -155,7 +165,7 @@
 
     <canvas id="ekg"></canvas>
     <div class="film-grain"></div>
-    <div class="lens-dither"></div>
+    <div class="dither-vignette"></div>
 
     <div class="content-wrapper" id="scene">
         <h1 id="title">ZERO DOLLAR<br>PROTOCOL</h1>
@@ -168,7 +178,7 @@
         
         const BPM_RESTING = 69;
         const BPM_MAX = 140;
-        const DECAY_RATE = 0.1; // How fast it calms down per frame
+        const DECAY_RATE = 0.2; 
         
         // --- ELEMENTS ---
         const body = document.body;
@@ -183,24 +193,24 @@
         
         // EKG Drawing State
         let xPos = 0;
-        let yBase = window.innerHeight / 2;
-        const speed = 2; // Horizontal scroll speed
-        let beatPhase = 0; // Where we are in the QRS complex
-        // The QRS complex shape (Y-offsets)
-        const beatPattern = [0, 5, 10, -10, -50, 80, -20, 10, 5, 0]; 
+        let yBase = 0; // Set in resize
+        const speed = 3; 
+        let beatPhase = 0; 
+        // Sharper QRS complex
+        const beatPattern = [0, -10, 15, -15, -80, 120, -30, 15, -10, 0]; 
 
         // --- INIT CANVAS ---
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            yBase = window.innerHeight / 2; // Recenter line
+            // Move EKG to bottom 25% of screen to avoid text overlap
+            yBase = window.innerHeight * 0.75; 
             
-            // Setup drawing style
-            ctx.strokeStyle = "rgba(200, 255, 255, 0.1)"; // Ghostly line
-            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = "rgba(0, 255, 255, 0.4)"; 
+            ctx.lineWidth = 2;
             ctx.lineJoin = 'round';
-            ctx.shadowBlur = 5;
-            ctx.shadowColor = "rgba(200, 255, 255, 0.3)";
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "rgba(0, 255, 255, 0.8)";
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
@@ -214,36 +224,34 @@
                 targetBPM -= DECAY_RATE; 
             }
             // Smoothly move current to target
-            currentBPM += (targetBPM - currentBPM) * 0.05;
+            currentBPM += (targetBPM - currentBPM) * 0.1;
 
             // 2. CHECK FOR BEAT
             const msPerBeat = 60000 / currentBPM;
             if (now - lastBeatTime > msPerBeat && beatPhase === 0) {
                 lastBeatTime = now;
-                beatPhase = 1; // Trigger the wave pattern
+                beatPhase = 1; 
             }
 
             // 3. CALCULATE Y POSITION
             let yOffset = 0;
 
             if (beatPhase > 0) {
-                // We are in a beat, cycle through the pattern
-                // Use beatPhase as index, increment it slowly
                 const index = Math.floor(beatPhase);
                 if (index < beatPattern.length) {
                     yOffset = beatPattern[index];
-                    beatPhase += 0.4; // Speed of the spike drawing
+                    beatPhase += 0.5; 
                 } else {
-                    beatPhase = 0; // Reset to flatline
+                    beatPhase = 0; 
                 }
             } else {
-                // Resting jitter (noise)
-                yOffset = (Math.random() - 0.5) * 4;
+                // Resting jitter 
+                yOffset = (Math.random() - 0.5) * 2;
             }
 
             // 4. DRAW
-            // Fade out the old line to create "scan" effect
-            ctx.fillStyle = 'rgba(8, 8, 8, 0.05)'; // Dark fade
+            // Fade out trail
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.1)'; 
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.beginPath();
@@ -257,7 +265,6 @@
 
             window.prevY = newY;
 
-            // Loop back to start of screen
             if (xPos > canvas.width) {
                 xPos = 0;
                 ctx.moveTo(0, yBase);
@@ -267,30 +274,22 @@
         }
 
         // --- INTERACTION ---
-        
-        // Mouse Move = Mild Stress
         document.addEventListener('mousemove', (e) => {
-            if (targetBPM < BPM_MAX) {
-                targetBPM += 0.4; // Slowly rise
-            }
+            if (targetBPM < BPM_MAX) targetBPM += 0.5; 
             
             // Parallax Text
-            const x = (window.innerWidth / 2 - e.pageX) / 40;
-            const y = (window.innerHeight / 2 - e.pageY) / 40;
+            const x = (window.innerWidth / 2 - e.pageX) / 30;
+            const y = (window.innerHeight / 2 - e.pageY) / 30;
             title.style.transform = `rotateX(${y}deg) rotateY(${-x}deg)`;
         });
 
-        // Click = Adrenaline Spike
         document.addEventListener('mousedown', () => {
-            if (targetBPM < BPM_MAX) {
-                targetBPM += 15; // Big jump
-            }
-            // Add a little visual shake to the title
-            title.style.transform = `scale(1.1)`;
+            if (targetBPM < BPM_MAX) targetBPM += 20; 
+            title.style.transform = `scale(1.15)`;
             setTimeout(() => { title.style.transform = `scale(1)`; }, 100);
         });
 
-        // --- STROBE ENGINE (From previous request) ---
+        // --- STROBE ENGINE ---
         function triggerStrobe() {
             const nextDelay = Math.floor(Math.random() * (STROBE_MAX - STROBE_MIN + 1) + STROBE_MIN);
             const type = Math.random() > 0.7 ? 'double' : 'single';
