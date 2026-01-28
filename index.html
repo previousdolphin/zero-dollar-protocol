@@ -7,18 +7,19 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
     <style>
         :root {
             --bg-color: #020202;
-            /* Silver/Platinum Gradient stops */
+            /* Silver/Platinum Gradient */
             --silver-1: #ffffff;
             --silver-2: #8a8a8a;
             --silver-3: #e0e0e0;
             
             --glitch-cyan: #00ffff;
             --glitch-magenta: #ff00ff;
+            --terminal-green: #00ff41;
         }
 
         /* --- BASE SETUP --- */
@@ -29,8 +30,9 @@
             height: 100vh;
             width: 100vw;
             overflow: hidden;
-            font-family: 'Bodoni Moda', serif; /* The Money Font */
+            font-family: 'Bodoni Moda', serif;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             cursor: crosshair; 
@@ -49,7 +51,7 @@
             opacity: 0.7; 
         }
 
-        /* 2. Global Grain (The Fuzz) */
+        /* 2. Global Grain */
         .film-grain {
             position: fixed;
             top: -100%; left: -100%; width: 300%; height: 300%;
@@ -74,7 +76,7 @@
             opacity: 0.8;
         }
 
-        /* --- TYPOGRAPHY --- */
+        /* --- CONTENT CONTAINER --- */
         .content-wrapper {
             position: relative;
             z-index: 10;
@@ -83,28 +85,25 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* Flex column to stack words */
-            flex-direction: column; 
+            flex-direction: column;
+            transition: transform 0.5s ease-out;
+        }
+        
+        /* State when on "About" page (Shifted up slightly) */
+        .content-wrapper.mode-about {
+            transform: translateY(-5vh);
         }
 
         h1 {
-            /* SMART SCALING:
-               This calculates the font size based on whichever is smaller: 
-               16% of Width OR 13% of Height.
-               This ensures the stack of 3 words NEVER falls off screen.
-            */
             font-size: min(15vw, 13vh); 
             line-height: 0.9;
-            
             font-weight: 900;
-            font-style: normal;
             text-transform: uppercase;
             margin: 0;
             text-align: center;
             position: relative;
             letter-spacing: -0.04em;
             
-            /* The "Bling" Effect: Silver Gradient Text */
             background: linear-gradient(
                 135deg, 
                 var(--silver-2) 0%, 
@@ -116,26 +115,21 @@
             background-size: 200% auto;
             -webkit-background-clip: text;
             background-clip: text;
-            color: transparent; /* Hide actual color to show gradient */
+            color: transparent;
             
             will-change: transform, filter, opacity;
             transition: transform 0.1s;
-            
-            /* Sharp edges */
             -webkit-font-smoothing: antialiased;
-            text-shadow: 0px 0px 30px rgba(255,255,255,0.15); /* Luxury Glow */
+            text-shadow: 0px 0px 30px rgba(255,255,255,0.15);
         }
 
-        /* Glitch Layers */
-        /* Note: Gradient text breaks slightly with mix-blend-mode, 
-           so we use solid colors for the glitch clones */
         h1::before, h1::after {
             content: attr(data-text); 
             white-space: pre;
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background: transparent;
-            mix-blend-mode: exclusion; /* Changed for better contrast with serif */
+            mix-blend-mode: exclusion;
             opacity: 0.6;
         }
 
@@ -153,8 +147,161 @@
             animation: glitch-idle-2 3.5s infinite linear alternate-reverse;
         }
 
-        /* --- ANIMATIONS --- */
+        /* --- PAGE 1: SPLASH ENTER INSTRUCTION --- */
+        .enter-prompt {
+            margin-top: 5vh;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 4px;
+            color: rgba(255,255,255,0.4);
+            animation: blink 2s infinite;
+            opacity: 1;
+            transition: opacity 0.5s;
+        }
+        .mode-about .enter-prompt {
+            opacity: 0;
+            pointer-events: none;
+            display: none;
+        }
+
+        /* --- PAGE 2: MANIFEST BUTTON (Hidden initially) --- */
+        .manifest-container {
+            height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: all 1s ease;
+            transform: translateY(20px);
+        }
         
+        .mode-about .manifest-container {
+            height: auto;
+            opacity: 1;
+            transform: translateY(0);
+            margin-top: 4vh;
+            overflow: visible;
+        }
+
+        .manifest-btn {
+            position: relative;
+            z-index: 20;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.6);
+            padding: 10px 20px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        .manifest-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border-color: #fff;
+            box-shadow: 0 0 15px rgba(255,255,255,0.2);
+        }
+
+        /* --- THE TERMINAL OVERLAY --- */
+        .terminal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.96);
+            z-index: 150; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .terminal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .data-container {
+            width: 100%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: var(--silver-3);
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            border: 1px solid #333;
+            padding: 30px;
+            background: rgba(10,10,10,0.8);
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            scrollbar-width: thin;
+            scrollbar-color: #555 #111;
+        }
+
+        .data-container::-webkit-scrollbar { width: 6px; }
+        .data-container::-webkit-scrollbar-track { background: #111; }
+        .data-container::-webkit-scrollbar-thumb { background: #555; }
+
+        .data-header {
+            font-family: 'Bodoni Moda', serif;
+            font-size: 24px;
+            color: #fff;
+            border-bottom: 1px solid #444;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            letter-spacing: -0.02em;
+        }
+
+        .section-title {
+            color: #fff;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-top: 25px;
+            margin-bottom: 5px;
+            border-left: 2px solid var(--glitch-cyan);
+            padding-left: 10px;
+        }
+
+        .data-text {
+            color: #aaa;
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+        
+        .highlight {
+            color: #fff;
+            text-decoration: underline;
+            text-decoration-color: #444;
+        }
+
+        .footer-cmd {
+            margin-top: 40px;
+            text-align: center;
+            color: var(--glitch-cyan);
+            font-weight: bold;
+            animation: blink 1.5s infinite;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: #555;
+            font-family: 'Space Mono', monospace;
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .close-btn:hover { color: #fff; }
+
+        /* --- ANIMATIONS --- */
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
         @keyframes fuzz-bounce {
             0% { transform: translate(0,0); }
             10% { transform: translate(-5%, -5%); }
@@ -176,7 +323,7 @@
             100% { clip-path: inset(0 0 0 0); transform: translate(0); }
         }
 
-        /* --- GLITCH ROULETTE STATES --- */
+        /* --- GLITCH STATES --- */
         .glitch-slice h1 {
             clip-path: polygon(0 40%, 100% 40%, 100% 60%, 0 60%);
             transform: skewX(50deg) translateX(-10px) !important;
@@ -190,12 +337,24 @@
         .glitch-invert h1 {
             filter: invert(1);
             background: none; 
-            color: #000; /* Force black on invert */
+            color: #000;
             -webkit-background-clip: border-box; 
         }
         .glitch-blur h1 {
             filter: blur(8px) contrast(200%);
             opacity: 0.9;
+        }
+        
+        /* Intro Breach Animation */
+        .system-breach {
+            animation: breach-anim 0.5s cubic-bezier(0.1, 0.9, 0.2, 1);
+        }
+        @keyframes breach-anim {
+            0% { filter: invert(0); transform: scale(1); }
+            20% { filter: invert(1); transform: scale(1.1); }
+            40% { filter: invert(0); transform: skewX(-10deg); }
+            60% { filter: invert(1); transform: skewX(10deg); }
+            100% { filter: invert(0); transform: scale(1); }
         }
 
     </style>
@@ -206,13 +365,60 @@
     <div class="film-grain"></div>
     <div class="dither-vignette"></div>
 
-    <div class="content-wrapper" id="scene">
+    <div class="content-wrapper" id="scene" onclick="enterProtocol()">
         <h1 id="title" data-text="ZERO&#10;DOLLAR&#10;PROTOCOL">ZERO<br>DOLLAR<br>PROTOCOL</h1>
+        
+        <div class="enter-prompt" id="prompt">[ CLICK TO INITIALIZE ]</div>
+
+        <div class="manifest-container">
+            <button class="manifest-btn" onclick="event.stopPropagation(); toggleData()">[ VIEW MANIFEST ]</button>
+        </div>
+    </div>
+
+    <div class="terminal-overlay" id="terminal">
+        <div class="close-btn" onclick="toggleData()">×</div>
+        <div class="data-container">
+            <div class="data-header">ZERO DOLLAR PROTOCOL: SITE DATA</div>
+            
+            <div class="section-title">THE CONTRACT</div>
+            <div class="data-text">
+                The Zero Dollar Protocol is not a festival. It is a <span class="highlight">transaction</span>.<br>
+                You provide the raw data (The Film). We provide the platform (The System).<br>
+                By entering the Protocol, you agree to the terms of Total Acquisition. We do not 'screen' your work; we absorb it.
+            </div>
+
+            <div class="section-title">THE FACILITY (VENUE)</div>
+            <div class="data-text">
+                The audit takes place at <span class="highlight">Rollin Studios (Brooklyn, NY)</span>—a 50,000 sq. ft. industrial containment zone.<br>
+                • Environment: Hostile to vanity. Optimized for judgment.<br>
+                • The Screen: High-volume projection.<br>
+                • The Audience: Industry observers and The System's officers.
+            </div>
+
+            <div class="section-title">THE PROCESS</div>
+            <div class="data-text">
+                1. <strong>Submission:</strong> You pay the Processing Fee to upload your signal.<br>
+                2. <strong>Transfer:</strong> Upon submission, you acknowledge that ownership is a burden. You relieve yourself of that burden. The work belongs to CoCA.<br>
+                3. <strong>The Audit:</strong> We filter the noise. Only the strongest signals are projected.<br>
+                4. <strong>The Bounty:</strong> One unit receives the capital injection ($1,000). The rest are archived.
+            </div>
+
+            <div class="section-title">WHAT TO EXPECT</div>
+            <div class="data-text">
+                Do not expect a celebration. Expect an audit.<br>
+                We are looking for the signal in the noise.<br>
+                If you are selected, you will be witnessed. If you are not, your fee has been processed.
+            </div>
+
+            <div class="footer-cmd">
+                > SUBMIT. COMPLY. ATTEND. <span style="animation: blink 0.5s infinite">_</span>
+            </div>
+        </div>
     </div>
 
     <script>
         // --- CONFIGURATION ---
-        const BPM_RESTING = 69;
+        const BPM_RESTING = 49;
         const BPM_MAX = 140;
         
         // --- ELEMENTS ---
@@ -220,6 +426,34 @@
         const container = document.getElementById('scene');
         const canvas = document.getElementById('ekg');
         const ctx = canvas.getContext('2d');
+        const terminal = document.getElementById('terminal');
+        const body = document.body;
+
+        // --- PAGE STATE LOGIC ---
+        let isAboutMode = false;
+
+        function enterProtocol() {
+            if (isAboutMode) return; // Already entered
+            isAboutMode = true;
+
+            // Trigger visual breach
+            body.classList.add('system-breach');
+            setTimeout(() => body.classList.remove('system-breach'), 500);
+
+            // Change Layout
+            container.classList.add('mode-about');
+            
+            // Spike the heartbeat
+            targetBPM = 120; 
+            
+            // Audio/Haptic feedback placeholder (screen shake)
+            container.classList.add('glitch-slice');
+            setTimeout(() => container.classList.remove('glitch-slice'), 200);
+        }
+
+        function toggleData() {
+            terminal.classList.toggle('active');
+        }
 
         // --- HEARTBEAT LOGIC ---
         let currentBPM = BPM_RESTING;
@@ -228,17 +462,13 @@
         let xPos = 0;
         let yBase = 0;
         let beatPhase = 0;
-        // The "Thick" Heartbeat Pattern
         const beatPattern = [0, -20, 40, -40, -150, 200, -60, 30, -10, 0]; 
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            // Floor is lower 15%
             yBase = window.innerHeight * 0.85; 
-            
-            // THICKER & GLOWIER
-            ctx.strokeStyle = "rgba(0, 255, 230, 0.7)"; // Cyan/Teal
+            ctx.strokeStyle = "rgba(0, 255, 230, 0.7)"; 
             ctx.lineWidth = 5; 
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
@@ -260,7 +490,6 @@
                 beatPhase = 1; 
             }
 
-            // Dark Trail Fade
             ctx.fillStyle = 'rgba(2, 2, 2, 0.1)'; 
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
@@ -295,7 +524,7 @@
 
         function glitchRoulette() {
             const delay = Math.random() * 4000 + 3000;
-            const roll = Math.floor(Math.random() * 6); // increased randomness
+            const roll = Math.floor(Math.random() * 6);
             
             const originalHTML = "ZERO<br>DOLLAR<br>PROTOCOL";
             const originalData = "ZERO\nDOLLAR\nPROTOCOL";
@@ -304,32 +533,14 @@
                 case 0: // SUBLIMINAL
                     const word = SUBLIMINALS[Math.floor(Math.random() * SUBLIMINALS.length)];
                     const stackHTML = `${word}<br>${word}<br>${word}`;
-                    
                     updateText(stackHTML, `${word}\n${word}\n${word}`);
                     setTimeout(() => updateText(originalHTML, originalData), 120);
                     break;
-
-                case 1: // SLICE
-                    container.classList.add('glitch-slice');
-                    setTimeout(() => container.classList.remove('glitch-slice'), 150);
-                    break;
-
-                case 2: // CRUSH
-                    container.classList.add('glitch-crush');
-                    setTimeout(() => container.classList.remove('glitch-crush'), 100);
-                    break;
-
-                case 3: // INVERT
-                    container.classList.add('glitch-invert');
-                    setTimeout(() => container.classList.remove('glitch-invert'), 80);
-                    break;
-                
-                case 4: // BLUR
-                    container.classList.add('glitch-blur');
-                    setTimeout(() => container.classList.remove('glitch-blur'), 200);
-                    break;
-                
-                case 5: // DOUBLE INVERT (Strobe)
+                case 1: container.classList.add('glitch-slice'); setTimeout(() => container.classList.remove('glitch-slice'), 150); break;
+                case 2: container.classList.add('glitch-crush'); setTimeout(() => container.classList.remove('glitch-crush'), 100); break;
+                case 3: container.classList.add('glitch-invert'); setTimeout(() => container.classList.remove('glitch-invert'), 80); break;
+                case 4: container.classList.add('glitch-blur'); setTimeout(() => container.classList.remove('glitch-blur'), 200); break;
+                case 5: 
                     container.classList.add('glitch-invert');
                     setTimeout(() => {
                         container.classList.remove('glitch-invert');
@@ -351,21 +562,9 @@
         // --- INTERACTION ---
         document.addEventListener('mousemove', (e) => {
             if (targetBPM < BPM_MAX) targetBPM += 0.5;
-            
             const x = (window.innerWidth / 2 - e.pageX) / 45;
             const y = (window.innerHeight / 2 - e.pageY) / 45;
             title.style.transform = `rotateX(${y}deg) rotateY(${-x}deg)`;
-        });
-
-        document.addEventListener('mousedown', () => {
-            if (targetBPM < BPM_MAX) targetBPM += 20;
-            // Visual pop
-            title.style.transform = `scale(1.02)`;
-            setTimeout(() => title.style.transform = `scale(1)`, 100);
-            
-            // Manual glitch trigger
-            container.classList.add('glitch-invert');
-            setTimeout(() => container.classList.remove('glitch-invert'), 50);
         });
 
         // Init
