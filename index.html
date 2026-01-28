@@ -4,204 +4,237 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZERO DOLLAR PROTOCOL</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet">
+
     <style>
-        /* --- RESET & BASE --- */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            cursor: crosshair; /* Brutalist cursor */
+        :root {
+            --bg-color: #080808;
+            --text-color: #e8e8e8;
+            --glitch-cyan: #0ff;
+            --glitch-magenta: #f0f;
         }
 
+        /* --- BASE SETUP --- */
         body {
-            background-color: #050505;
-            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
             height: 100vh;
             width: 100vw;
             overflow: hidden;
+            font-family: 'Archivo Black', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: 'Helvetica Neue', 'Arial Black', sans-serif;
-            perspective: 1000px;
+            cursor: none; /* Hide cursor for immersion */
         }
 
-        /* --- FILM GRAIN & NOISE LAYERS --- */
-        .noise-overlay {
+        /* --- THE LENS SYSTEM (The "Dithered" Effect) --- */
+        
+        /* 1. The Film Grain Base */
+        .film-grain {
             position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
-            opacity: 0.15;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
+            opacity: 0.12;
+            animation: grain-shift 0.2s steps(4) infinite;
             pointer-events: none;
-            animation: grain-dance 0.2s steps(4) infinite;
             z-index: 10;
+        }
+
+        /* 2. The Dithered Vignette (The "Dirty Lens") 
+           This uses a radial gradient mask on a high-contrast noise layer 
+           to create "crunchy" fading edges. */
+        .lens-dither {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            pointer-events: none;
+            background: #000;
+            /* Create the vignette visibility */
+            mask-image: radial-gradient(circle at center, transparent 40%, black 120%);
+            -webkit-mask-image: radial-gradient(circle at center, transparent 40%, black 120%);
+        }
+        
+        /* The actual noisy texture inside the dark vignette */
+        .lens-dither::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E");
+            opacity: 0.4;
+            mix-blend-mode: hard-light;
+        }
+
+        /* 3. Chromatic Aberration on Edges */
+        .aberration-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 15;
+            pointer-events: none;
+            background: transparent;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
             mix-blend-mode: overlay;
         }
 
-        .scanlines {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(
-                to bottom,
-                rgba(255,255,255,0),
-                rgba(255,255,255,0) 50%,
-                rgba(0,0,0,0.4) 50%,
-                rgba(0,0,0,0.4)
-            );
-            background-size: 100% 4px;
-            z-index: 11;
-            pointer-events: none;
-        }
-
-        /* --- MAIN CONTAINER --- */
-        .container {
+        /* --- TYPOGRAPHY --- */
+        .content-wrapper {
             position: relative;
             z-index: 5;
-            filter: contrast(120%) brightness(110%);
-            transform: scale(1);
-            transition: transform 0.1s;
+            mix-blend-mode: difference;
+            perspective: 800px;
         }
 
-        /* --- TYPOGRAPHY --- */
         h1 {
-            font-size: 9vw;
-            line-height: 0.85;
+            font-size: 10vw;
+            line-height: 0.8;
             text-transform: uppercase;
-            letter-spacing: -0.05em;
-            font-weight: 900;
+            color: var(--text-color);
+            margin: 0;
             text-align: center;
             position: relative;
-            color: #fff;
-            mix-blend-mode: difference;
-            /* The glitch layers */
+            letter-spacing: -0.06em;
+            transform-style: preserve-3d;
+            will-change: transform;
         }
 
-        /* The RGB Split layers using pseudo-elements */
+        /* The Glitch Layers */
         h1::before, h1::after {
-            content: "ZERO DOLLAR\A PROTOCOL"; /* \A is a line break in CSS content */
+            content: "ZERO DOLLAR\A PROTOCOL";
             white-space: pre;
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #050505; /* Matches body to hide main text */
-            opacity: 0.7;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color);
+            mix-blend-mode: hard-light;
+            opacity: 0.8;
         }
 
         h1::before {
-            color: #0ff; /* Cyan */
+            color: var(--glitch-cyan);
             z-index: -1;
-            animation: glitch-anim-1 2.5s infinite linear alternate-reverse;
-            clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
-            mix-blend-mode: screen;
+            clip-path: inset(0 0 0 0);
+            animation: glitch-snap-1 4s infinite linear alternate-reverse;
         }
 
         h1::after {
-            color: #f0f; /* Magenta */
+            color: var(--glitch-magenta);
             z-index: -2;
-            animation: glitch-anim-2 3s infinite linear alternate-reverse;
-            clip-path: polygon(0 80%, 100% 20%, 100% 100%, 0 100%);
-            mix-blend-mode: screen;
+            clip-path: inset(0 0 0 0);
+            animation: glitch-snap-2 3.5s infinite linear alternate-reverse;
         }
 
         /* --- ANIMATIONS --- */
-        
-        /* Simulates film jumping in the projector gate */
-        @keyframes grain-dance {
+        @keyframes grain-shift {
             0% { transform: translate(0,0); }
-            10% { transform: translate(-5%, -5%); }
-            20% { transform: translate(-10%, 5%); }
-            30% { transform: translate(5%, -10%); }
-            40% { transform: translate(-5%, 15%); }
-            50% { transform: translate(-10%, 5%); }
-            60% { transform: translate(15%, 0); }
-            70% { transform: translate(0, 10%); }
-            80% { transform: translate(-15%, 0); }
-            90% { transform: translate(10%, 5%); }
-            100% { transform: translate(5%, 0); }
+            20% { transform: translate(-5%, 5%); }
+            40% { transform: translate(5%, -5%); }
+            60% { transform: translate(-5%, -5%); }
+            80% { transform: translate(5%, 5%); }
+            100% { transform: translate(0,0); }
         }
 
-        @keyframes glitch-anim-1 {
-            0% { clip-path: inset(20% 0 80% 0); transform: translate(-2px, 1px); }
-            20% { clip-path: inset(60% 0 10% 0); transform: translate(2px, -1px); }
-            40% { clip-path: inset(40% 0 50% 0); transform: translate(-2px, 2px); }
-            60% { clip-path: inset(80% 0 5% 0); transform: translate(2px, -2px); }
-            80% { clip-path: inset(10% 0 70% 0); transform: translate(-1px, 1px); }
-            100% { clip-path: inset(30% 0 50% 0); transform: translate(1px, -1px); }
+        @keyframes glitch-snap-1 {
+            0%, 90% { clip-path: inset(0 0 0 0); transform: translate(0); }
+            91% { clip-path: inset(20% 0 50% 0); transform: translate(-2px, 2px); }
+            92% { clip-path: inset(60% 0 10% 0); transform: translate(2px, -2px); }
+            93% { clip-path: inset(0 0 0 0); transform: translate(0); }
+            96% { clip-path: inset(10% 0 70% 0); transform: translate(3px, 0); }
+            100% { clip-path: inset(0 0 0 0); transform: translate(0); }
         }
 
-        @keyframes glitch-anim-2 {
-            0% { clip-path: inset(10% 0 60% 0); transform: translate(2px, -1px); }
-            20% { clip-path: inset(80% 0 5% 0); transform: translate(-2px, 2px); }
-            40% { clip-path: inset(30% 0 20% 0); transform: translate(2px, 1px); }
-            60% { clip-path: inset(15% 0 80% 0); transform: translate(-1px, -2px); }
-            80% { clip-path: inset(55% 0 10% 0); transform: translate(1px, 2px); }
-            100% { clip-path: inset(40% 0 30% 0); transform: translate(-2px, 1px); }
+        @keyframes glitch-snap-2 {
+            0%, 85% { clip-path: inset(0 0 0 0); transform: translate(0); }
+            86% { clip-path: inset(40% 0 30% 0); transform: translate(2px, 2px); }
+            87% { clip-path: inset(0 0 0 0); transform: translate(0); }
+            92% { clip-path: inset(10% 0 60% 0); transform: translate(-2px, 0); }
+            100% { clip-path: inset(0 0 0 0); transform: translate(0); }
         }
 
-        /* Occasional aggressive strobe */
-        @keyframes strobe {
-            0% { background-color: #050505; filter: invert(0); }
-            95% { background-color: #050505; filter: invert(0); }
-            96% { background-color: #fff; filter: invert(1); }
-            97% { background-color: #050505; filter: invert(0); }
-            98% { background-color: #fff; filter: invert(1); }
-            100% { background-color: #050505; filter: invert(0); }
+        /* --- STROBE CLASS --- */
+        /* Used by JS to invert the screen aggressively */
+        .flash-bang {
+            filter: invert(1) contrast(200%);
+            background-color: white !important;
+        }
+        
+        .flash-bang h1 {
+            color: black !important;
         }
 
-        .strobe-active {
-            animation: strobe 4s infinite;
-        }
-
-        /* Vignette to darken edges like old film */
-        .vignette {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, transparent 40%, black 100%);
-            z-index: 20;
-            pointer-events: none;
-        }
     </style>
 </head>
-<body class="strobe-active">
+<body>
 
-    <div class="noise-overlay"></div>
-    <div class="scanlines"></div>
-    <div class="vignette"></div>
+    <div class="film-grain"></div>
+    <div class="aberration-overlay"></div>
+    <div class="lens-dither"></div>
 
-    <div class="container">
-        <h1>
+    <div class="content-wrapper" id="scene">
+        <h1 id="title">
             ZERO DOLLAR<br>PROTOCOL
         </h1>
     </div>
 
     <script>
-        // JS adds random "jitter" to the text size to make it feel unstable/explosive
-        const container = document.querySelector('.container');
+        // --- CONFIGURATION ---
+        const MIN_DELAY = 5000; // 5 seconds
+        const MAX_DELAY = 10000; // 10 seconds
         
-        setInterval(() => {
-            if(Math.random() > 0.8) {
-                // Random scale bump
-                const scale = 1 + (Math.random() * 0.05);
-                container.style.transform = `scale(${scale})`;
-                
-                // Random text skew
-                const skewX = (Math.random() * 10) - 5;
-                container.style.transform += ` skewX(${skewX}deg)`;
+        const body = document.body;
+        const title = document.getElementById('title');
+
+        // --- RANDOMIZED STROBE ENGINE ---
+        function triggerStrobe() {
+            // 1. Calculate random delay for next time
+            const nextDelay = Math.floor(Math.random() * (MAX_DELAY - MIN_DELAY + 1) + MIN_DELAY);
+            
+            // 2. Decide Strobe Intensity (Coin toss)
+            const type = Math.random() > 0.7 ? 'double' : 'single';
+
+            // 3. Execute
+            if (type === 'single') {
+                performFlash(60); // 60ms flash
             } else {
-                container.style.transform = 'scale(1) skewX(0deg)';
+                // Double tap
+                performFlash(40);
+                setTimeout(() => performFlash(100), 120);
             }
-        }, 100);
+
+            // 4. Queue next
+            console.log(`Next protocol breach in: ${nextDelay}ms`);
+            setTimeout(triggerStrobe, nextDelay);
+        }
+
+        function performFlash(duration) {
+            body.classList.add('flash-bang');
+            
+            // Sound effect visualizer (optional jitter during flash)
+            title.style.transform = `scale(1.05) skewX(${Math.random() * 10 - 5}deg)`;
+
+            setTimeout(() => {
+                body.classList.remove('flash-bang');
+                title.style.transform = 'scale(1) skewX(0deg)';
+            }, duration);
+        }
+
+        // --- MOUSE PARALLAX (Subtle Lens Effect) ---
+        document.addEventListener('mousemove', (e) => {
+            const x = (window.innerWidth / 2 - e.pageX) / 40;
+            const y = (window.innerHeight / 2 - e.pageY) / 40;
+            
+            // Move the text slightly opposite to mouse
+            title.style.transform = `rotateX(${y}deg) rotateY(${-x}deg)`;
+        });
+
+        // Start the engine
+        window.onload = () => {
+            // Initial delay before first flash
+            setTimeout(triggerStrobe, 2000);
+        };
+
     </script>
 </body>
 </html>
