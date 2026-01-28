@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ZERO DOLLAR PROTOCOL</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,16 +42,18 @@
             width: 100%; height: 100%;
             z-index: 1; 
             pointer-events: none;
-            opacity: 0.5; 
+            opacity: 0.6; /* Slightly more visible now that lines are thicker */
         }
 
-        /* 2. Global Grain */
+        /* 2. Global Grain (The "Fuzz") */
+        /* Changed to use steps() to prevent "raining" slide effect */
         .film-grain {
             position: fixed;
-            top: -50%; left: -50%; width: 200%; height: 200%;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
-            opacity: 0.08;
-            animation: grain-shift 0.2s steps(4) infinite;
+            top: -100%; left: -100%; width: 300%; height: 300%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
+            opacity: 0.1;
+            /* steps(10) creates the jitter/fuzz look instead of smooth sliding */
+            animation: fuzz-bounce 0.8s steps(10) infinite; 
             pointer-events: none;
             z-index: 5;
         }
@@ -60,14 +62,18 @@
         .dither-vignette {
             position: fixed;
             inset: 0;
-            z-index: 100; /* Always on top */
+            z-index: 100;
             pointer-events: none;
+            /* High contrast noise mask for edges */
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='discrete' tableValues='0 1'/%3E%3CfeFuncG type='discrete' tableValues='0 1'/%3E%3CfeFuncB type='discrete' tableValues='0 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
-            background-size: 150px 150px;
-            -webkit-mask-image: radial-gradient(circle at center, transparent 35%, black 100%);
-            mask-image: radial-gradient(circle at center, transparent 35%, black 100%);
+            background-size: 100px 100px;
+            
+            /* Responsive Vignette Mask */
+            -webkit-mask-image: radial-gradient(circle at center, transparent 40%, black 100%);
+            mask-image: radial-gradient(circle at center, transparent 40%, black 100%);
+            
             mix-blend-mode: multiply;
-            opacity: 0.85;
+            opacity: 0.9;
         }
 
         /* --- TYPOGRAPHY --- */
@@ -75,24 +81,40 @@
             position: relative;
             z-index: 10;
             perspective: 800px;
+            width: 100%;
+            text-align: center;
         }
 
         h1 {
-            font-size: 11vw;
-            line-height: 0.8;
+            /* Responsive Sizing Logic */
+            /* Mobile Default (Portrait) */
+            font-size: 18vw; 
+            line-height: 0.85;
+            
             text-transform: uppercase;
             color: var(--text-color);
             margin: 0;
             text-align: center;
             position: relative;
-            letter-spacing: -0.06em;
+            letter-spacing: -0.05em;
             will-change: transform, filter, opacity;
             transition: transform 0.1s;
+            
+            /* Sharp edges */
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Landscape / Large Screen Adjustment */
+        @media (min-aspect-ratio: 1/1) {
+            h1 {
+                font-size: 8vw; /* Smaller vw on wide screens so it fits vertically */
+                line-height: 0.9;
+            }
         }
 
         /* Standard Glitch Layers */
         h1::before, h1::after {
-            content: attr(data-text); /* Pulls text dynamically for updates */
+            content: attr(data-text); 
             white-space: pre;
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -115,52 +137,54 @@
             animation: glitch-idle-2 3.5s infinite linear alternate-reverse;
         }
 
-        /* --- ANIMATIONS & GLITCH STATES --- */
+        /* --- ANIMATIONS --- */
         
-        @keyframes grain-shift {
-            0% { background-position: 0% 0%; }
-            100% { background-position: 10% 10%; }
+        /* The Fuzz Animation: Random Jumps */
+        @keyframes fuzz-bounce {
+            0% { transform: translate(0,0); }
+            10% { transform: translate(-5%, -5%); }
+            20% { transform: translate(2%, 2%); }
+            30% { transform: translate(-2%, 5%); }
+            40% { transform: translate(5%, -2%); }
+            50% { transform: translate(-2%, -2%); }
+            60% { transform: translate(5%, 5%); }
+            70% { transform: translate(-5%, 2%); }
+            80% { transform: translate(2%, -5%); }
+            90% { transform: translate(-2%, 2%); }
+            100% { transform: translate(0,0); }
         }
 
-        /* Idle Animations (Subtle) */
+        /* Idle Glitch Movements */
         @keyframes glitch-idle-1 {
             0%, 95% { clip-path: inset(0 0 0 0); transform: translate(0); }
-            96% { clip-path: inset(20% 0 50% 0); transform: translate(-2px, 1px); }
+            96% { clip-path: inset(20% 0 50% 0); transform: translate(-3px, 1px); }
             100% { clip-path: inset(0 0 0 0); transform: translate(0); }
         }
         @keyframes glitch-idle-2 {
             0%, 90% { clip-path: inset(0 0 0 0); transform: translate(0); }
-            91% { clip-path: inset(40% 0 30% 0); transform: translate(2px, -1px); }
+            91% { clip-path: inset(40% 0 30% 0); transform: translate(3px, -1px); }
             100% { clip-path: inset(0 0 0 0); transform: translate(0); }
         }
 
         /* --- THE GLITCH ROULETTE STATES --- */
-
-        /* 1. TEXT SLICE: Extreme horizontal shear */
         .glitch-slice h1 {
             clip-path: polygon(0 30%, 100% 30%, 100% 70%, 0 70%);
-            transform: skewX(60deg) translateX(-20px) !important;
+            transform: skewX(40deg) translateX(-15px) !important;
             filter: blur(2px);
         }
-
-        /* 2. CRT CRUSH: Vertical squash */
         .glitch-crush h1 {
-            transform: scaleY(0.05) scaleX(1.5) !important;
+            transform: scaleY(0.01) scaleX(1.2) !important;
             opacity: 0.5;
             filter: brightness(200%);
         }
-
-        /* 3. NEGATIVE: Invert Text Color Only */
         .glitch-invert h1 {
             filter: invert(1);
             color: #000;
         }
-        
-        /* 4. BLUR OUT: Ghosting */
         .glitch-blur h1 {
-            filter: blur(15px);
+            filter: blur(10px);
             opacity: 0.8;
-            letter-spacing: 0.5em;
+            letter-spacing: 0.1em;
         }
 
     </style>
@@ -172,7 +196,7 @@
     <div class="dither-vignette"></div>
 
     <div class="content-wrapper" id="scene">
-        <h1 id="title" data-text="ZERO DOLLAR&#10;PROTOCOL">ZERO DOLLAR<br>PROTOCOL</h1>
+        <h1 id="title" data-text="ZERO&#10;DOLLAR&#10;PROTOCOL">ZERO<br>DOLLAR<br>PROTOCOL</h1>
     </div>
 
     <script>
@@ -193,24 +217,28 @@
         let xPos = 0;
         let yBase = 0;
         let beatPhase = 0;
-        // Sharp, clinical QRS complex
-        const beatPattern = [0, -10, 15, -15, -80, 120, -30, 15, -10, 0]; 
+        // Sharper, higher amplitude QRS complex
+        const beatPattern = [0, -20, 30, -30, -120, 180, -50, 20, -10, 0]; 
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            yBase = window.innerHeight * 0.75; // Bottom 25% floor
-            ctx.strokeStyle = "rgba(0, 255, 255, 0.4)"; 
-            ctx.lineWidth = 2;
+            // Floor is lower third
+            yBase = window.innerHeight * 0.8; 
+            
+            // THICKER LINES HERE
+            ctx.strokeStyle = "rgba(0, 255, 255, 0.6)"; 
+            ctx.lineWidth = 4; // Thicker line
             ctx.lineJoin = 'round';
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = "rgba(0, 255, 255, 0.8)";
+            ctx.lineCap = 'round';
+            ctx.shadowBlur = 20; // Stronger glow
+            ctx.shadowColor = "rgba(0, 255, 255, 0.9)";
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
         function animateHeart() {
-            if (targetBPM > BPM_RESTING) targetBPM -= 0.2; // Decay
+            if (targetBPM > BPM_RESTING) targetBPM -= 0.2; 
             currentBPM += (targetBPM - currentBPM) * 0.1;
 
             const msPerBeat = 60000 / currentBPM;
@@ -221,9 +249,10 @@
                 beatPhase = 1; 
             }
 
-            // Draw
-            ctx.fillStyle = 'rgba(5, 5, 5, 0.1)'; 
+            // Draw Background Fade (Simulates phosphor decay)
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.15)'; 
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
             ctx.beginPath();
             ctx.moveTo(xPos, yBase + (window.prevY || 0));
 
@@ -235,10 +264,11 @@
                     beatPhase += 0.5;
                 } else { beatPhase = 0; }
             } else {
-                yOffset = (Math.random() - 0.5) * 2; // Flatline noise
+                // Resting jitter 
+                yOffset = (Math.random() - 0.5) * 3; 
             }
 
-            xPos += 3;
+            xPos += 4; // Slightly faster scroll
             ctx.lineTo(xPos, yBase + yOffset);
             ctx.stroke();
             window.prevY = yOffset;
@@ -250,33 +280,26 @@
             requestAnimationFrame(animateHeart);
         }
 
-        // --- THE COMPLEX GLITCH ENGINE ---
-        
-        const SUBLIMINALS = [
-            "NULL",
-            "VOID",
-            "0.00",
-            "ERROR",
-            "DEBT",
-            "ZERO"
-        ];
+        // --- GLITCH ENGINE ---
+        const SUBLIMINALS = ["NULL", "VOID", "0.00", "ERROR", "DEBT", "ZERO"];
 
         function glitchRoulette() {
-            // Random delay between 3s and 7s
             const delay = Math.random() * 4000 + 3000;
-            
-            // Pick a glitch type (0 to 4)
             const roll = Math.floor(Math.random() * 5);
             
-            // Original Text
-            const originalHTML = "ZERO DOLLAR<br>PROTOCOL";
-            const originalData = "ZERO DOLLAR\nPROTOCOL";
+            // Standard Text for Reset
+            const originalHTML = "ZERO<br>DOLLAR<br>PROTOCOL";
+            const originalData = "ZERO\nDOLLAR\nPROTOCOL";
 
             switch(roll) {
-                case 0: // SUBLIMINAL SWAP
+                case 0: // SUBLIMINAL
                     const word = SUBLIMINALS[Math.floor(Math.random() * SUBLIMINALS.length)];
-                    updateText(word);
-                    setTimeout(() => updateText("ZERO DOLLAR\nPROTOCOL", true), 120);
+                    // Repeat word 3 times for visual consistency in the stack
+                    const stack = `${word}\n${word}\n${word}`;
+                    const stackHTML = `${word}<br>${word}<br>${word}`;
+                    
+                    updateText(stackHTML, stack);
+                    setTimeout(() => updateText(originalHTML, originalData), 120);
                     break;
 
                 case 1: // SLICE
@@ -284,61 +307,47 @@
                     setTimeout(() => container.classList.remove('glitch-slice'), 150);
                     break;
 
-                case 2: // CRT CRUSH
+                case 2: // CRUSH
                     container.classList.add('glitch-crush');
                     setTimeout(() => container.classList.remove('glitch-crush'), 100);
                     break;
 
-                case 3: // INVERT TEXT ONLY
+                case 3: // INVERT
                     container.classList.add('glitch-invert');
                     setTimeout(() => container.classList.remove('glitch-invert'), 80);
-                    setTimeout(() => {
-                        container.classList.add('glitch-invert'); // Double flash
-                        setTimeout(() => container.classList.remove('glitch-invert'), 80);
-                    }, 120);
                     break;
                 
-                case 4: // BLUR/GHOST
+                case 4: // BLUR
                     container.classList.add('glitch-blur');
                     setTimeout(() => container.classList.remove('glitch-blur'), 200);
                     break;
             }
-
             setTimeout(glitchRoulette, delay);
         }
 
-        // Helper to update text and the ::before/::after data attributes
-        function updateText(text, isOriginal = false) {
-            if (isOriginal) {
-                title.innerHTML = "ZERO DOLLAR<br>PROTOCOL";
-                title.setAttribute('data-text', "ZERO DOLLAR\nPROTOCOL");
-            } else {
-                title.innerText = text; // Subliminals are single lines usually
-                title.setAttribute('data-text', text);
-            }
+        function updateText(html, attr) {
+            title.innerHTML = html;
+            title.setAttribute('data-text', attr);
         }
 
         // --- INTERACTION ---
         document.addEventListener('mousemove', (e) => {
             if (targetBPM < BPM_MAX) targetBPM += 0.5;
             
-            // Parallax
-            const x = (window.innerWidth / 2 - e.pageX) / 35;
-            const y = (window.innerHeight / 2 - e.pageY) / 35;
+            const x = (window.innerWidth / 2 - e.pageX) / 40;
+            const y = (window.innerHeight / 2 - e.pageY) / 40;
             title.style.transform = `rotateX(${y}deg) rotateY(${-x}deg)`;
         });
 
         document.addEventListener('mousedown', () => {
             if (targetBPM < BPM_MAX) targetBPM += 20;
-            title.style.transform = `scale(1.1)`;
+            title.style.transform = `scale(1.05)`;
             setTimeout(() => title.style.transform = `scale(1)`, 100);
-            
-            // Click triggers a manual small glitch
             container.classList.add('glitch-invert');
             setTimeout(() => container.classList.remove('glitch-invert'), 50);
         });
 
-        // Initialize
+        // Init
         animateHeart();
         setTimeout(glitchRoulette, 2000);
 
