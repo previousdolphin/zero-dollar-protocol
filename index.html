@@ -29,23 +29,23 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            cursor: crosshair; /* Brutalist cursor */
+            cursor: crosshair; 
             user-select: none;
         }
 
-        /* --- LAYERS (Bottom to Top) --- */
+        /* --- LAYERS --- */
         
-        /* 1. EKG Canvas (Background, moved to bottom) */
+        /* 1. EKG (Bottom Layer) */
         canvas#ekg {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: 1; 
             pointer-events: none;
-            opacity: 0.6; /* Slight boost since it's lower now */
+            opacity: 0.5; 
         }
 
-        /* 2. Global Film Grain (Subtle texture everywhere) */
+        /* 2. Global Grain */
         .film-grain {
             position: fixed;
             top: -50%; left: -50%; width: 200%; height: 200%;
@@ -56,33 +56,25 @@
             z-index: 5;
         }
 
-        /* 3. THE CRUNCHY LENS (The requested "Dither" effect) */
-        /* This creates a heavy noise ring around the edges */
+        /* 3. Crunchy Vignette (Top Layer) */
         .dither-vignette {
             position: fixed;
             inset: 0;
-            z-index: 50; /* Sits ON TOP of text */
+            z-index: 100; /* Always on top */
             pointer-events: none;
-            
-            /* The noise pattern: coarse and high contrast */
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='discrete' tableValues='0 1'/%3E%3CfeFuncG type='discrete' tableValues='0 1'/%3E%3CfeFuncB type='discrete' tableValues='0 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
             background-size: 150px 150px;
-            
-            /* The Mask: Clear in center, Opaque at edges */
-            -webkit-mask-image: radial-gradient(circle at center, transparent 30%, black 90%);
-            mask-image: radial-gradient(circle at center, transparent 30%, black 90%);
-            
-            /* Blend mode to make it darken the scene "crunchily" */
+            -webkit-mask-image: radial-gradient(circle at center, transparent 35%, black 100%);
+            mask-image: radial-gradient(circle at center, transparent 35%, black 100%);
             mix-blend-mode: multiply;
-            opacity: 0.8;
+            opacity: 0.85;
         }
 
-        /* 4. CONTENT WRAPPER */
+        /* --- TYPOGRAPHY --- */
         .content-wrapper {
             position: relative;
-            z-index: 10; /* Above grain, below dither lens */
+            z-index: 10;
             perspective: 800px;
-            /* Removed mix-blend-mode difference to fix overlap issues */
         }
 
         h1 {
@@ -94,19 +86,18 @@
             text-align: center;
             position: relative;
             letter-spacing: -0.06em;
-            transform-style: preserve-3d;
-            will-change: transform;
-            text-shadow: 0 0 20px rgba(0,0,0,0.8); /* Lift text off background */
+            will-change: transform, filter, opacity;
+            transition: transform 0.1s;
         }
 
-        /* GLITCH LAYERS (The cyan/magenta split) */
+        /* Standard Glitch Layers */
         h1::before, h1::after {
-            content: "ZERO DOLLAR\A PROTOCOL";
+            content: attr(data-text); /* Pulls text dynamically for updates */
             white-space: pre;
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: transparent; /* Changed from solid to transparent to avoid blocking */
-            mix-blend-mode: screen; /* Lightens the glitch */
+            background: transparent;
+            mix-blend-mode: hard-light;
             opacity: 0.7;
         }
 
@@ -114,49 +105,62 @@
             color: var(--glitch-cyan);
             z-index: -1;
             clip-path: inset(0 0 0 0);
-            animation: glitch-snap-1 4s infinite linear alternate-reverse;
-            transform: translate(-2px, 0);
+            animation: glitch-idle-1 4s infinite linear alternate-reverse;
         }
 
         h1::after {
             color: var(--glitch-magenta);
             z-index: -2;
             clip-path: inset(0 0 0 0);
-            animation: glitch-snap-2 3.5s infinite linear alternate-reverse;
-            transform: translate(2px, 0);
+            animation: glitch-idle-2 3.5s infinite linear alternate-reverse;
         }
 
-        /* --- ANIMATIONS --- */
+        /* --- ANIMATIONS & GLITCH STATES --- */
+        
         @keyframes grain-shift {
             0% { background-position: 0% 0%; }
             100% { background-position: 10% 10%; }
         }
 
-        @keyframes glitch-snap-1 {
-            0%, 92% { clip-path: inset(0 0 0 0); transform: translate(0); }
-            93% { clip-path: inset(20% 0 50% 0); transform: translate(-4px, 2px); }
-            94% { clip-path: inset(60% 0 10% 0); transform: translate(4px, -2px); }
-            95% { clip-path: inset(0 0 0 0); transform: translate(0); }
-            98% { clip-path: inset(10% 0 70% 0); transform: translate(3px, 0); }
+        /* Idle Animations (Subtle) */
+        @keyframes glitch-idle-1 {
+            0%, 95% { clip-path: inset(0 0 0 0); transform: translate(0); }
+            96% { clip-path: inset(20% 0 50% 0); transform: translate(-2px, 1px); }
+            100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+        }
+        @keyframes glitch-idle-2 {
+            0%, 90% { clip-path: inset(0 0 0 0); transform: translate(0); }
+            91% { clip-path: inset(40% 0 30% 0); transform: translate(2px, -1px); }
             100% { clip-path: inset(0 0 0 0); transform: translate(0); }
         }
 
-        @keyframes glitch-snap-2 {
-            0%, 88% { clip-path: inset(0 0 0 0); transform: translate(0); }
-            89% { clip-path: inset(40% 0 30% 0); transform: translate(3px, 3px); }
-            90% { clip-path: inset(0 0 0 0); transform: translate(0); }
-            100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+        /* --- THE GLITCH ROULETTE STATES --- */
+
+        /* 1. TEXT SLICE: Extreme horizontal shear */
+        .glitch-slice h1 {
+            clip-path: polygon(0 30%, 100% 30%, 100% 70%, 0 70%);
+            transform: skewX(60deg) translateX(-20px) !important;
+            filter: blur(2px);
         }
 
-        /* Strobe Effect */
-        .flash-bang {
-            filter: invert(1) contrast(150%);
-            background-color: #ddd !important;
+        /* 2. CRT CRUSH: Vertical squash */
+        .glitch-crush h1 {
+            transform: scaleY(0.05) scaleX(1.5) !important;
+            opacity: 0.5;
+            filter: brightness(200%);
         }
-        /* Ensure text stays readable (inverted to black) during flash */
-        .flash-bang h1 { 
-            color: #111 !important;
-            text-shadow: none;
+
+        /* 3. NEGATIVE: Invert Text Color Only */
+        .glitch-invert h1 {
+            filter: invert(1);
+            color: #000;
+        }
+        
+        /* 4. BLUR OUT: Ghosting */
+        .glitch-blur h1 {
+            filter: blur(15px);
+            opacity: 0.8;
+            letter-spacing: 0.5em;
         }
 
     </style>
@@ -168,44 +172,34 @@
     <div class="dither-vignette"></div>
 
     <div class="content-wrapper" id="scene">
-        <h1 id="title">ZERO DOLLAR<br>PROTOCOL</h1>
+        <h1 id="title" data-text="ZERO DOLLAR&#10;PROTOCOL">ZERO DOLLAR<br>PROTOCOL</h1>
     </div>
 
     <script>
         // --- CONFIGURATION ---
-        const STROBE_MIN = 5000;
-        const STROBE_MAX = 10000;
-        
         const BPM_RESTING = 69;
         const BPM_MAX = 140;
-        const DECAY_RATE = 0.2; 
         
         // --- ELEMENTS ---
-        const body = document.body;
         const title = document.getElementById('title');
+        const container = document.getElementById('scene');
         const canvas = document.getElementById('ekg');
         const ctx = canvas.getContext('2d');
 
-        // --- HEARTBEAT STATE ---
+        // --- HEARTBEAT LOGIC ---
         let currentBPM = BPM_RESTING;
         let targetBPM = BPM_RESTING;
         let lastBeatTime = 0;
-        
-        // EKG Drawing State
         let xPos = 0;
-        let yBase = 0; // Set in resize
-        const speed = 3; 
-        let beatPhase = 0; 
-        // Sharper QRS complex
+        let yBase = 0;
+        let beatPhase = 0;
+        // Sharp, clinical QRS complex
         const beatPattern = [0, -10, 15, -15, -80, 120, -30, 15, -10, 0]; 
 
-        // --- INIT CANVAS ---
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            // Move EKG to bottom 25% of screen to avoid text overlap
-            yBase = window.innerHeight * 0.75; 
-            
+            yBase = window.innerHeight * 0.75; // Bottom 25% floor
             ctx.strokeStyle = "rgba(0, 255, 255, 0.4)"; 
             ctx.lineWidth = 2;
             ctx.lineJoin = 'round';
@@ -215,102 +209,138 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // --- THE LOOP ---
-        function animate() {
-            const now = Date.now();
-            
-            // 1. CALM DOWN LOGIC
-            if (targetBPM > BPM_RESTING) {
-                targetBPM -= DECAY_RATE; 
-            }
-            // Smoothly move current to target
+        function animateHeart() {
+            if (targetBPM > BPM_RESTING) targetBPM -= 0.2; // Decay
             currentBPM += (targetBPM - currentBPM) * 0.1;
 
-            // 2. CHECK FOR BEAT
             const msPerBeat = 60000 / currentBPM;
+            const now = Date.now();
+
             if (now - lastBeatTime > msPerBeat && beatPhase === 0) {
                 lastBeatTime = now;
                 beatPhase = 1; 
             }
 
-            // 3. CALCULATE Y POSITION
-            let yOffset = 0;
+            // Draw
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.1)'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.moveTo(xPos, yBase + (window.prevY || 0));
 
+            let yOffset = 0;
             if (beatPhase > 0) {
                 const index = Math.floor(beatPhase);
                 if (index < beatPattern.length) {
                     yOffset = beatPattern[index];
-                    beatPhase += 0.5; 
-                } else {
-                    beatPhase = 0; 
-                }
+                    beatPhase += 0.5;
+                } else { beatPhase = 0; }
             } else {
-                // Resting jitter 
-                yOffset = (Math.random() - 0.5) * 2;
+                yOffset = (Math.random() - 0.5) * 2; // Flatline noise
             }
 
-            // 4. DRAW
-            // Fade out trail
-            ctx.fillStyle = 'rgba(5, 5, 5, 0.1)'; 
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.beginPath();
-            ctx.moveTo(xPos, yBase + (window.prevY || 0));
-            
-            xPos += speed;
-            const newY = yOffset;
-            
-            ctx.lineTo(xPos, yBase + newY);
+            xPos += 3;
+            ctx.lineTo(xPos, yBase + yOffset);
             ctx.stroke();
-
-            window.prevY = newY;
+            window.prevY = yOffset;
 
             if (xPos > canvas.width) {
                 xPos = 0;
                 ctx.moveTo(0, yBase);
             }
+            requestAnimationFrame(animateHeart);
+        }
 
-            requestAnimationFrame(animate);
+        // --- THE COMPLEX GLITCH ENGINE ---
+        
+        const SUBLIMINALS = [
+            "NULL",
+            "VOID",
+            "0.00",
+            "ERROR",
+            "DEBT",
+            "ZERO"
+        ];
+
+        function glitchRoulette() {
+            // Random delay between 3s and 7s
+            const delay = Math.random() * 4000 + 3000;
+            
+            // Pick a glitch type (0 to 4)
+            const roll = Math.floor(Math.random() * 5);
+            
+            // Original Text
+            const originalHTML = "ZERO DOLLAR<br>PROTOCOL";
+            const originalData = "ZERO DOLLAR\nPROTOCOL";
+
+            switch(roll) {
+                case 0: // SUBLIMINAL SWAP
+                    const word = SUBLIMINALS[Math.floor(Math.random() * SUBLIMINALS.length)];
+                    updateText(word);
+                    setTimeout(() => updateText("ZERO DOLLAR\nPROTOCOL", true), 120);
+                    break;
+
+                case 1: // SLICE
+                    container.classList.add('glitch-slice');
+                    setTimeout(() => container.classList.remove('glitch-slice'), 150);
+                    break;
+
+                case 2: // CRT CRUSH
+                    container.classList.add('glitch-crush');
+                    setTimeout(() => container.classList.remove('glitch-crush'), 100);
+                    break;
+
+                case 3: // INVERT TEXT ONLY
+                    container.classList.add('glitch-invert');
+                    setTimeout(() => container.classList.remove('glitch-invert'), 80);
+                    setTimeout(() => {
+                        container.classList.add('glitch-invert'); // Double flash
+                        setTimeout(() => container.classList.remove('glitch-invert'), 80);
+                    }, 120);
+                    break;
+                
+                case 4: // BLUR/GHOST
+                    container.classList.add('glitch-blur');
+                    setTimeout(() => container.classList.remove('glitch-blur'), 200);
+                    break;
+            }
+
+            setTimeout(glitchRoulette, delay);
+        }
+
+        // Helper to update text and the ::before/::after data attributes
+        function updateText(text, isOriginal = false) {
+            if (isOriginal) {
+                title.innerHTML = "ZERO DOLLAR<br>PROTOCOL";
+                title.setAttribute('data-text', "ZERO DOLLAR\nPROTOCOL");
+            } else {
+                title.innerText = text; // Subliminals are single lines usually
+                title.setAttribute('data-text', text);
+            }
         }
 
         // --- INTERACTION ---
         document.addEventListener('mousemove', (e) => {
-            if (targetBPM < BPM_MAX) targetBPM += 0.5; 
+            if (targetBPM < BPM_MAX) targetBPM += 0.5;
             
-            // Parallax Text
-            const x = (window.innerWidth / 2 - e.pageX) / 30;
-            const y = (window.innerHeight / 2 - e.pageY) / 30;
+            // Parallax
+            const x = (window.innerWidth / 2 - e.pageX) / 35;
+            const y = (window.innerHeight / 2 - e.pageY) / 35;
             title.style.transform = `rotateX(${y}deg) rotateY(${-x}deg)`;
         });
 
         document.addEventListener('mousedown', () => {
-            if (targetBPM < BPM_MAX) targetBPM += 20; 
-            title.style.transform = `scale(1.15)`;
-            setTimeout(() => { title.style.transform = `scale(1)`; }, 100);
+            if (targetBPM < BPM_MAX) targetBPM += 20;
+            title.style.transform = `scale(1.1)`;
+            setTimeout(() => title.style.transform = `scale(1)`, 100);
+            
+            // Click triggers a manual small glitch
+            container.classList.add('glitch-invert');
+            setTimeout(() => container.classList.remove('glitch-invert'), 50);
         });
 
-        // --- STROBE ENGINE ---
-        function triggerStrobe() {
-            const nextDelay = Math.floor(Math.random() * (STROBE_MAX - STROBE_MIN + 1) + STROBE_MIN);
-            const type = Math.random() > 0.7 ? 'double' : 'single';
-
-            if (type === 'single') {
-                performFlash(60);
-            } else {
-                performFlash(40);
-                setTimeout(() => performFlash(100), 120);
-            }
-            setTimeout(triggerStrobe, nextDelay);
-        }
-
-        function performFlash(duration) {
-            body.classList.add('flash-bang');
-            setTimeout(() => body.classList.remove('flash-bang'), duration);
-        }
-
-        // Start
-        animate();
-        setTimeout(triggerStrobe, 2000);
+        // Initialize
+        animateHeart();
+        setTimeout(glitchRoulette, 2000);
 
     </script>
 </body>
