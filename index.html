@@ -15,6 +15,7 @@
             --text-color: #e8e8e8;
             --glitch-cyan: #0ff;
             --glitch-magenta: #f0f;
+            --ecg-color: rgba(200, 255, 255, 0.15); /* Ghostly faint teal */
         }
 
         /* --- BASE SETUP --- */
@@ -29,12 +30,22 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            cursor: none; /* Hide cursor for immersion */
+            cursor: none;
+            user-select: none;
         }
 
-        /* --- THE LENS SYSTEM (The "Dithered" Effect) --- */
+        /* --- LAYERS --- */
         
-        /* 1. The Film Grain Base */
+        /* 1. EKG Canvas (Background) */
+        canvas#ekg {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1; /* Lowest visual layer */
+            pointer-events: none;
+        }
+
+        /* 2. Film Grain (Middle) */
         .film-grain {
             position: fixed;
             top: -50%; left: -50%; width: 200%; height: 200%;
@@ -45,21 +56,17 @@
             z-index: 10;
         }
 
-        /* 2. The Dithered Vignette (The "Dirty Lens") 
-           This uses a radial gradient mask on a high-contrast noise layer 
-           to create "crunchy" fading edges. */
+        /* 3. Dither Lens (Top) */
         .lens-dither {
             position: fixed;
             inset: 0;
             z-index: 20;
             pointer-events: none;
             background: #000;
-            /* Create the vignette visibility */
             mask-image: radial-gradient(circle at center, transparent 40%, black 120%);
             -webkit-mask-image: radial-gradient(circle at center, transparent 40%, black 120%);
         }
         
-        /* The actual noisy texture inside the dark vignette */
         .lens-dither::before {
             content: "";
             position: absolute;
@@ -69,21 +76,10 @@
             mix-blend-mode: hard-light;
         }
 
-        /* 3. Chromatic Aberration on Edges */
-        .aberration-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 15;
-            pointer-events: none;
-            background: transparent;
-            box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
-            mix-blend-mode: overlay;
-        }
-
         /* --- TYPOGRAPHY --- */
         .content-wrapper {
             position: relative;
-            z-index: 5;
+            z-index: 30; /* Above everything */
             mix-blend-mode: difference;
             perspective: 800px;
         }
@@ -101,7 +97,6 @@
             will-change: transform;
         }
 
-        /* The Glitch Layers */
         h1::before, h1::after {
             content: "ZERO DOLLAR\A PROTOCOL";
             white-space: pre;
@@ -129,11 +124,7 @@
         /* --- ANIMATIONS --- */
         @keyframes grain-shift {
             0% { transform: translate(0,0); }
-            20% { transform: translate(-5%, 5%); }
-            40% { transform: translate(5%, -5%); }
-            60% { transform: translate(-5%, -5%); }
-            80% { transform: translate(5%, 5%); }
-            100% { transform: translate(0,0); }
+            100% { transform: translate(-5%, -5%); }
         }
 
         @keyframes glitch-snap-1 {
@@ -141,7 +132,6 @@
             91% { clip-path: inset(20% 0 50% 0); transform: translate(-2px, 2px); }
             92% { clip-path: inset(60% 0 10% 0); transform: translate(2px, -2px); }
             93% { clip-path: inset(0 0 0 0); transform: translate(0); }
-            96% { clip-path: inset(10% 0 70% 0); transform: translate(3px, 0); }
             100% { clip-path: inset(0 0 0 0); transform: translate(0); }
         }
 
@@ -149,91 +139,179 @@
             0%, 85% { clip-path: inset(0 0 0 0); transform: translate(0); }
             86% { clip-path: inset(40% 0 30% 0); transform: translate(2px, 2px); }
             87% { clip-path: inset(0 0 0 0); transform: translate(0); }
-            92% { clip-path: inset(10% 0 60% 0); transform: translate(-2px, 0); }
             100% { clip-path: inset(0 0 0 0); transform: translate(0); }
         }
 
-        /* --- STROBE CLASS --- */
-        /* Used by JS to invert the screen aggressively */
+        /* Strobe Effect Class */
         .flash-bang {
             filter: invert(1) contrast(200%);
             background-color: white !important;
         }
-        
-        .flash-bang h1 {
-            color: black !important;
-        }
+        .flash-bang h1 { color: black !important; }
 
     </style>
 </head>
 <body>
 
+    <canvas id="ekg"></canvas>
     <div class="film-grain"></div>
-    <div class="aberration-overlay"></div>
     <div class="lens-dither"></div>
 
     <div class="content-wrapper" id="scene">
-        <h1 id="title">
-            ZERO DOLLAR<br>PROTOCOL
-        </h1>
+        <h1 id="title">ZERO DOLLAR<br>PROTOCOL</h1>
     </div>
 
     <script>
         // --- CONFIGURATION ---
-        const MIN_DELAY = 5000; // 5 seconds
-        const MAX_DELAY = 10000; // 10 seconds
+        const STROBE_MIN = 5000;
+        const STROBE_MAX = 10000;
         
+        const BPM_RESTING = 69;
+        const BPM_MAX = 140;
+        const DECAY_RATE = 0.1; // How fast it calms down per frame
+        
+        // --- ELEMENTS ---
         const body = document.body;
         const title = document.getElementById('title');
+        const canvas = document.getElementById('ekg');
+        const ctx = canvas.getContext('2d');
 
-        // --- RANDOMIZED STROBE ENGINE ---
-        function triggerStrobe() {
-            // 1. Calculate random delay for next time
-            const nextDelay = Math.floor(Math.random() * (MAX_DELAY - MIN_DELAY + 1) + MIN_DELAY);
+        // --- HEARTBEAT STATE ---
+        let currentBPM = BPM_RESTING;
+        let targetBPM = BPM_RESTING;
+        let lastBeatTime = 0;
+        
+        // EKG Drawing State
+        let xPos = 0;
+        let yBase = window.innerHeight / 2;
+        const speed = 2; // Horizontal scroll speed
+        let beatPhase = 0; // Where we are in the QRS complex
+        // The QRS complex shape (Y-offsets)
+        const beatPattern = [0, 5, 10, -10, -50, 80, -20, 10, 5, 0]; 
+
+        // --- INIT CANVAS ---
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            yBase = window.innerHeight / 2; // Recenter line
             
-            // 2. Decide Strobe Intensity (Coin toss)
+            // Setup drawing style
+            ctx.strokeStyle = "rgba(200, 255, 255, 0.1)"; // Ghostly line
+            ctx.lineWidth = 1.5;
+            ctx.lineJoin = 'round';
+            ctx.shadowBlur = 5;
+            ctx.shadowColor = "rgba(200, 255, 255, 0.3)";
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // --- THE LOOP ---
+        function animate() {
+            const now = Date.now();
+            
+            // 1. CALM DOWN LOGIC
+            if (targetBPM > BPM_RESTING) {
+                targetBPM -= DECAY_RATE; 
+            }
+            // Smoothly move current to target
+            currentBPM += (targetBPM - currentBPM) * 0.05;
+
+            // 2. CHECK FOR BEAT
+            const msPerBeat = 60000 / currentBPM;
+            if (now - lastBeatTime > msPerBeat && beatPhase === 0) {
+                lastBeatTime = now;
+                beatPhase = 1; // Trigger the wave pattern
+            }
+
+            // 3. CALCULATE Y POSITION
+            let yOffset = 0;
+
+            if (beatPhase > 0) {
+                // We are in a beat, cycle through the pattern
+                // Use beatPhase as index, increment it slowly
+                const index = Math.floor(beatPhase);
+                if (index < beatPattern.length) {
+                    yOffset = beatPattern[index];
+                    beatPhase += 0.4; // Speed of the spike drawing
+                } else {
+                    beatPhase = 0; // Reset to flatline
+                }
+            } else {
+                // Resting jitter (noise)
+                yOffset = (Math.random() - 0.5) * 4;
+            }
+
+            // 4. DRAW
+            // Fade out the old line to create "scan" effect
+            ctx.fillStyle = 'rgba(8, 8, 8, 0.05)'; // Dark fade
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.beginPath();
+            ctx.moveTo(xPos, yBase + (window.prevY || 0));
+            
+            xPos += speed;
+            const newY = yOffset;
+            
+            ctx.lineTo(xPos, yBase + newY);
+            ctx.stroke();
+
+            window.prevY = newY;
+
+            // Loop back to start of screen
+            if (xPos > canvas.width) {
+                xPos = 0;
+                ctx.moveTo(0, yBase);
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- INTERACTION ---
+        
+        // Mouse Move = Mild Stress
+        document.addEventListener('mousemove', (e) => {
+            if (targetBPM < BPM_MAX) {
+                targetBPM += 0.4; // Slowly rise
+            }
+            
+            // Parallax Text
+            const x = (window.innerWidth / 2 - e.pageX) / 40;
+            const y = (window.innerHeight / 2 - e.pageY) / 40;
+            title.style.transform = `rotateX(${y}deg) rotateY(${-x}deg)`;
+        });
+
+        // Click = Adrenaline Spike
+        document.addEventListener('mousedown', () => {
+            if (targetBPM < BPM_MAX) {
+                targetBPM += 15; // Big jump
+            }
+            // Add a little visual shake to the title
+            title.style.transform = `scale(1.1)`;
+            setTimeout(() => { title.style.transform = `scale(1)`; }, 100);
+        });
+
+        // --- STROBE ENGINE (From previous request) ---
+        function triggerStrobe() {
+            const nextDelay = Math.floor(Math.random() * (STROBE_MAX - STROBE_MIN + 1) + STROBE_MIN);
             const type = Math.random() > 0.7 ? 'double' : 'single';
 
-            // 3. Execute
             if (type === 'single') {
-                performFlash(60); // 60ms flash
+                performFlash(60);
             } else {
-                // Double tap
                 performFlash(40);
                 setTimeout(() => performFlash(100), 120);
             }
-
-            // 4. Queue next
-            console.log(`Next protocol breach in: ${nextDelay}ms`);
             setTimeout(triggerStrobe, nextDelay);
         }
 
         function performFlash(duration) {
             body.classList.add('flash-bang');
-            
-            // Sound effect visualizer (optional jitter during flash)
-            title.style.transform = `scale(1.05) skewX(${Math.random() * 10 - 5}deg)`;
-
-            setTimeout(() => {
-                body.classList.remove('flash-bang');
-                title.style.transform = 'scale(1) skewX(0deg)';
-            }, duration);
+            setTimeout(() => body.classList.remove('flash-bang'), duration);
         }
 
-        // --- MOUSE PARALLAX (Subtle Lens Effect) ---
-        document.addEventListener('mousemove', (e) => {
-            const x = (window.innerWidth / 2 - e.pageX) / 40;
-            const y = (window.innerHeight / 2 - e.pageY) / 40;
-            
-            // Move the text slightly opposite to mouse
-            title.style.transform = `rotateX(${y}deg) rotateY(${-x}deg)`;
-        });
-
-        // Start the engine
-        window.onload = () => {
-            // Initial delay before first flash
-            setTimeout(triggerStrobe, 2000);
-        };
+        // Start
+        animate();
+        setTimeout(triggerStrobe, 2000);
 
     </script>
 </body>
